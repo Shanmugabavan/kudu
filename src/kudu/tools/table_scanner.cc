@@ -509,6 +509,19 @@ void TableScanner::ScanTask(const vector<KuduScanToken *>& tokens, Status* threa
   });
 }
 
+void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thread_status) {
+  *thread_status = ScanData(tokens, [&](const KuduScanBatch& batch) {
+    if (out_ && FLAGS_show_values) {
+      MutexLock l(output_lock_);
+      for (const auto& row : batch) {
+        *out_ << row.ToString() << "\n";
+        std::cout<<"Shanmu";
+      }
+      out_->flush();
+    }
+  });
+}
+
 void TableScanner::CopyTask(const vector<KuduScanToken*>& tokens, Status* thread_status) {
   client::sp::shared_ptr<KuduTable> dst_table;
   CHECK_OK(dst_client_.get()->OpenTable(*dst_table_name_, &dst_table));
@@ -570,14 +583,14 @@ Status TableScanner::StartWork(WorkType type) {
     }
   }
 
-  // if (type == WorkType::kExport) {
-  //   bool project_all = FLAGS_columns == "*" ||
-  //                      (FLAGS_show_values && FLAGS_columns.empty());
-  //   if (!project_all) {
-  //     vector<string> projected_column_names = Split(FLAGS_columns, ",", strings::SkipEmpty());
-  //     RETURN_NOT_OK(builder.SetProjectedColumnNames(projected_column_names));
-  //   }
-  // }
+  if (type == WorkType::kExport) {
+    bool project_all = FLAGS_columns == "*" ||
+                       (FLAGS_show_values && FLAGS_columns.empty());
+    if (!project_all) {
+      vector<string> projected_column_names = Split(FLAGS_columns, ",", strings::SkipEmpty());
+      RETURN_NOT_OK(builder.SetProjectedColumnNames(projected_column_names));
+    }
+  }
 
   // Set predicates.
   RETURN_NOT_OK(AddPredicates(src_table, builder));
@@ -613,7 +626,11 @@ Status TableScanner::StartWork(WorkType type) {
     if (type == WorkType::kScan) {
       RETURN_NOT_OK(thread_pool_->Submit([this, t_tokens, t_status]()
                                          { this->ScanTask(*t_tokens, t_status); }));
-    } else {
+    }else if (type == WorkType::kExport) {
+      RETURN_NOT_OK(thread_pool_->Submit([this, t_tokens, t_status]()
+                                         { this->ExportTask(*t_tokens, t_status); }));
+    }
+    else {
       CHECK(type == WorkType::kCopy);
       RETURN_NOT_OK(thread_pool_->Submit([this, t_tokens, t_status]()
                                          { this->CopyTask(*t_tokens, t_status); }));
@@ -651,9 +668,9 @@ Status TableScanner::StartCopy() {
   return StartWork(WorkType::kCopy);
 }
 
-// Status TableScanner::StartExport(){
-//   return StartWork(WorkType::kExport)
-// }
+Status TableScanner::StartExport(){
+  return StartWork(WorkType::kExport);
+}
 
 } // namespace tools
 } // namespace kudu
