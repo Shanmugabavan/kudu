@@ -502,6 +502,7 @@ void TableScanner::ScanTask(const vector<KuduScanToken *>& tokens, Status* threa
       MutexLock l(output_lock_);
       for (const auto& row : batch) {
         *out_ << row.ToString() << "\n";
+        std::cout<<"Shanmu";
       }
       out_->flush();
     }
@@ -568,6 +569,15 @@ Status TableScanner::StartWork(WorkType type) {
       RETURN_NOT_OK(builder.SetProjectedColumnNames(projected_column_names));
     }
   }
+
+  // if (type == WorkType::kExport) {
+  //   bool project_all = FLAGS_columns == "*" ||
+  //                      (FLAGS_show_values && FLAGS_columns.empty());
+  //   if (!project_all) {
+  //     vector<string> projected_column_names = Split(FLAGS_columns, ",", strings::SkipEmpty());
+  //     RETURN_NOT_OK(builder.SetProjectedColumnNames(projected_column_names));
+  //   }
+  // }
 
   // Set predicates.
   RETURN_NOT_OK(AddPredicates(src_table, builder));
@@ -640,6 +650,10 @@ Status TableScanner::StartCopy() {
 
   return StartWork(WorkType::kCopy);
 }
+
+// Status TableScanner::StartExport(){
+//   return StartWork(WorkType::kExport)
+// }
 
 } // namespace tools
 } // namespace kudu
