@@ -514,8 +514,7 @@ void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thr
     if (out_ && FLAGS_show_values) {
       MutexLock l(output_lock_);
       for (const auto& row : batch) {
-        *out_ << row.ToString() << "\n";
-        std::cout<<"Shanmu";
+        *out_ << row.ToCSVRowString() << "\n";
       }
       out_->flush();
     }

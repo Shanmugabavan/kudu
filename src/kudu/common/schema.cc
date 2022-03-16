@@ -116,6 +116,7 @@ string ColumnStorageAttributes::ToString() const {
                     cfile_block_size_str);
 }
 
+
 Status ColumnSchema::ApplyDelta(const ColumnSchemaDelta& col_delta) {
   // This method does all validation up-front before making any changes to
   // the schema, so that if we return an error then we are guaranteed to
@@ -161,6 +162,11 @@ string ColumnSchema::ToString(ToStringMode mode) const {
                     name_,
                     TypeToString(),
                     mode == ToStringMode::WITH_ATTRIBUTES ? " " + AttrToString() : "");
+}
+
+string ColumnSchema::ToCSVRowString(ToStringMode mode) const {
+  return Substitute("$0",
+                    name_);
 }
 
 string ColumnSchema::TypeToString() const {
@@ -484,6 +490,29 @@ string Schema::ToString(ToStringMode mode) const {
                 "PRIMARY KEY (",
                 JoinStrings(pk_strs, ", "),
                 ")",
+                "\n)");
+}
+
+string Schema::ToCSVRowString(ToStringMode mode) const {
+  if (cols_.empty()) return "()";
+
+  auto col_mode = ColumnSchema::ToStringMode::WITHOUT_ATTRIBUTES;
+  if (mode & ToStringMode::WITH_COLUMN_ATTRIBUTES) {
+    col_mode = ColumnSchema::ToStringMode::WITH_ATTRIBUTES;
+  }
+  vector<string> col_strs;
+  if (has_column_ids() && (mode & ToStringMode::WITH_COLUMN_IDS)) {
+    for (int i = 0; i < cols_.size(); ++i) {
+      col_strs.push_back(Substitute("$0:$1", col_ids_[i], cols_[i].ToCSVRowString(col_mode)));
+    }
+  } else {
+    for (const ColumnSchema &col : cols_) {
+      col_strs.push_back(col.ToCSVRowString(col_mode));
+    }
+  }
+
+  return StrCat(
+                JoinStrings(col_strs, ","),
                 "\n)");
 }
 

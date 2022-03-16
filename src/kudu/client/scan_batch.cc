@@ -398,5 +398,24 @@ string KuduScanBatch::RowPtr::ToString() const {
   return ret;
 }
 
+string KuduScanBatch::RowPtr::ToCSVRowString() const {
+  // Client-users calling ToString() will likely expect it to not be redacted.
+  ScopedDisableRedaction no_redaction;
+
+  string ret;
+  ret.append("(");
+  bool first = true;
+  for (int i = 0; i < schema_->num_columns(); i++) {
+    if (!first) {
+      ret.append(", ");
+    }
+    RowCell cell(this, i);
+    schema_->column(i).DebugCSVCellAppend(cell, &ret);
+    first = false;
+  }
+  ret.append(")");
+  return ret;
+}
+
 } // namespace client
 } // namespace kudu
