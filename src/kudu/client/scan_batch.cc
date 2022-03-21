@@ -403,7 +403,6 @@ string KuduScanBatch::RowPtr::ToCSVRowString() const {
   ScopedDisableRedaction no_redaction;
 
   string ret;
-  ret.append("(");
   bool first = true;
   for (int i = 0; i < schema_->num_columns(); i++) {
     if (!first) {
@@ -413,7 +412,6 @@ string KuduScanBatch::RowPtr::ToCSVRowString() const {
     schema_->column(i).DebugCSVCellAppend(cell, &ret);
     first = false;
   }
-  ret.append(")");
   return ret;
 }
 

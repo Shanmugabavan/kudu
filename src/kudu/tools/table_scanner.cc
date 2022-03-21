@@ -26,6 +26,8 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <fstream>
+#include <string>
 
 #include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
@@ -81,6 +83,7 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 using strings::Substitute;
+using std::basic_fstream;
 
 DEFINE_bool(create_table, true,
             "Whether to create the destination table if it doesn't exist.");
@@ -114,6 +117,12 @@ DEFINE_string(write_type, "insert",
               "How data should be copied to the destination table. Valid values are 'insert', "
               "'upsert' or the empty string. If the empty string, data will not be copied "
               "(useful when create_table is 'true').");
+
+std::string filename = "/home/shanmu/kuduDatabase/1/t1.csv";
+std::string filename_2 = "/home/shanmu/kuduDatabase/1/t2.csv";
+std::fstream s(filename, s.trunc | s.in | s.out);
+std::fstream* s_ptr=&s;
+std::fstream s2(filename_2, s2.trunc | s2.in | s2.out);
 
 static bool ValidateWriteType(const char* flag_name,
                               const string& flag_value) {
@@ -502,23 +511,32 @@ void TableScanner::ScanTask(const vector<KuduScanToken *>& tokens, Status* threa
       MutexLock l(output_lock_);
       for (const auto& row : batch) {
         *out_ << row.ToString() << "\n";
-        std::cout<<"Shanmu";
       }
       out_->flush();
     }
   });
 }
 
+
 void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thread_status) {
+  std::cout<<"Thread";
   *thread_status = ScanData(tokens, [&](const KuduScanBatch& batch) {
-    if (out_ && FLAGS_show_values) {
+    if (FLAGS_show_values) {
+      
       MutexLock l(output_lock_);
+      string row_batch="";
       for (const auto& row : batch) {
-        *out_ << row.ToCSVRowString() << "\n";
+          row_batch+=row.ToCSVRowString()+"\n";
       }
-      out_->flush();
+      s<<row_batch;
+      s2<<row_batch;
+      row_batch.clear();
+      s.flush();
+      s2.flush();
+      // s.close();
     }
   });
+  
 }
 
 void TableScanner::CopyTask(const vector<KuduScanToken*>& tokens, Status* thread_status) {

@@ -104,6 +104,7 @@ class TableScanner {
   // Protects output to 'out_' so that rows don't get interleaved.
   Mutex output_lock_;
   std::ostream* out_;
+  Mutex file_handle_lock;
 };
 } // namespace tools
 } // namespace kudu
