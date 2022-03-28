@@ -495,13 +495,6 @@ string Schema::ToString(ToStringMode mode) const {
 
 string Schema::ToCSVRowString(ToStringMode mode) const {
   if (cols_.empty()) return "()";
-
-  vector<string> pk_strs;
-  pk_strs.reserve(num_key_columns_);
-  for (int i = 0; i < num_key_columns_; i++) {
-    pk_strs.push_back(cols_[i].name());
-  }
-
   auto col_mode = ColumnSchema::ToStringMode::WITHOUT_ATTRIBUTES;
   if (mode & ToStringMode::WITH_COLUMN_ATTRIBUTES) {
     col_mode = ColumnSchema::ToStringMode::WITH_ATTRIBUTES;
@@ -519,7 +512,7 @@ string Schema::ToCSVRowString(ToStringMode mode) const {
 
   return StrCat(
                 JoinStrings(col_strs, ","),
-                "\n)");
+                "\n");
 }
 
 template <class RowType>

@@ -28,6 +28,8 @@
 #include <set>
 #include <fstream>
 #include <string>
+#include <sstream>
+#include <thread>
 
 #include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
@@ -118,11 +120,7 @@ DEFINE_string(write_type, "insert",
               "'upsert' or the empty string. If the empty string, data will not be copied "
               "(useful when create_table is 'true').");
 
-std::string filename = "/home/shanmu/kuduDatabase/1/t1.csv";
-std::string filename_2 = "/home/shanmu/kuduDatabase/1/t2.csv";
-std::fstream s(filename, s.trunc | s.in | s.out);
-std::fstream* s_ptr=&s;
-std::fstream s2(filename_2, s2.trunc | s2.in | s2.out);
+
 
 static bool ValidateWriteType(const char* flag_name,
                               const string& flag_value) {
@@ -519,24 +517,33 @@ void TableScanner::ScanTask(const vector<KuduScanToken *>& tokens, Status* threa
 
 
 void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thread_status) {
-  std::cout<<"Thread";
+  std::string FilePath = "/home/shanmu/kuduDatabase/1/";
+  std::thread::id currentThreadId = std::this_thread::get_id();
+  std::stringstream ss;
+  ss << currentThreadId;
+  std::string currentThreadIdStr = ss.str();
+  FilePath+=currentThreadIdStr+".csv";
+  bool coloum_Names_added=false;
+
+  std::fstream s(FilePath, s.out);
+
   *thread_status = ScanData(tokens, [&](const KuduScanBatch& batch) {
     if (FLAGS_show_values) {
-      
-      MutexLock l(output_lock_);
       string row_batch="";
+      
+      if (!coloum_Names_added){
+        const KuduSchema* coloumn_names=batch.projection_schema();
+        row_batch+=(*coloumn_names).ToCSVRowString();
+        coloum_Names_added=true;
+      }
       for (const auto& row : batch) {
-          row_batch+=row.ToCSVRowString()+"\n";
+        row_batch+=row.ToCSVRowString()+"\n";
       }
       s<<row_batch;
-      s2<<row_batch;
-      row_batch.clear();
       s.flush();
-      s2.flush();
-      // s.close();
     }
   });
-  
+  s.close();
 }
 
 void TableScanner::CopyTask(const vector<KuduScanToken*>& tokens, Status* thread_status) {
