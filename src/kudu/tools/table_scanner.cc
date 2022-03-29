@@ -524,26 +524,28 @@ void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thr
   std::string currentThreadIdStr = ss.str();
   FilePath+=currentThreadIdStr+".csv";
   bool coloum_Names_added=false;
+  string row_batch;
+  string* row_batch_ptr=&row_batch;
+  row_batch.reserve(10000);
 
   std::fstream s(FilePath, s.out);
 
   *thread_status = ScanData(tokens, [&](const KuduScanBatch& batch) {
     if (FLAGS_show_values) {
-      string row_batch="";
       
       if (!coloum_Names_added){
         const KuduSchema* coloumn_names=batch.projection_schema();
-        row_batch+=(*coloumn_names).ToCSVRowString();
+        (*row_batch_ptr).append((*coloumn_names).ToCSVRowString());
         coloum_Names_added=true;
       }
       for (const auto& row : batch) {
-        row_batch+=row.ToCSVRowString()+"\n";
+        (*row_batch_ptr).append(row.ToCSVRowString()+"\n");
       }
-      s<<row_batch;
+      s<<*row_batch_ptr;
+      (*row_batch_ptr).clear();
       s.flush();
     }
   });
-  s.close();
 }
 
 void TableScanner::CopyTask(const vector<KuduScanToken*>& tokens, Status* thread_status) {
