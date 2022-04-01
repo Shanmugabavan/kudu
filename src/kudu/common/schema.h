@@ -797,7 +797,7 @@ class Schema {
   // Stringify this Schema. This is not particularly efficient,
   // so should only be used when necessary for output.
   std::string ToString(ToStringMode mode = ToStringMode::WITH_COLUMN_IDS) const;
-  std::string ToCSVRowString(ToStringMode mode = ToStringMode::WITH_COLUMN_IDS) const;
+  void ToCSVRowString(ToStringMode mode = ToStringMode::WITH_COLUMN_IDS,char* delimeter=NULL,std::string* output=NULL) const;
 
   // Compare column ids in Equals() method.
   enum SchemaComparisonType {

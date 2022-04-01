@@ -493,8 +493,8 @@ string Schema::ToString(ToStringMode mode) const {
                 "\n)");
 }
 
-string Schema::ToCSVRowString(ToStringMode mode) const {
-  if (cols_.empty()) return "()";
+void Schema::ToCSVRowString(ToStringMode mode,char* delimeter,std::string* output) const {
+  if (cols_.empty()) *output+="";
   auto col_mode = ColumnSchema::ToStringMode::WITHOUT_ATTRIBUTES;
   if (mode & ToStringMode::WITH_COLUMN_ATTRIBUTES) {
     col_mode = ColumnSchema::ToStringMode::WITH_ATTRIBUTES;
@@ -510,9 +510,7 @@ string Schema::ToCSVRowString(ToStringMode mode) const {
     }
   }
 
-  return StrCat(
-                JoinStrings(col_strs, ","),
-                "\n");
+  JoinCSVLineWithDelimiter(col_strs, *delimeter,output);
 }
 
 template <class RowType>

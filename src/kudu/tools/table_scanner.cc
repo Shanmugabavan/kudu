@@ -528,6 +528,11 @@ void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thr
   string* row_batch_ptr=&row_batch;
   row_batch.reserve(10000);
 
+  std::string ret;
+  vector<std::string> row_array;
+  char delimeter=',';
+  string column_namess; 
+
   std::fstream s(FilePath, s.out);
 
   *thread_status = ScanData(tokens, [&](const KuduScanBatch& batch) {
@@ -535,11 +540,14 @@ void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thr
       
       if (!coloum_Names_added){
         const KuduSchema* coloumn_names=batch.projection_schema();
-        (*row_batch_ptr).append((*coloumn_names).ToCSVRowString());
+        (*coloumn_names).ToCSVRowString(delimeter,column_namess);
+        (*row_batch_ptr).append(column_namess+"\n");
         coloum_Names_added=true;
       }
       for (const auto& row : batch) {
-        (*row_batch_ptr).append(row.ToCSVRowString()+"\n");
+        row.ToCSVRowString(ret,row_array,delimeter);
+        (*row_batch_ptr).append(ret+"\n");
+        ret.clear();
       }
       s<<*row_batch_ptr;
       (*row_batch_ptr).clear();
