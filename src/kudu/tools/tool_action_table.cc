@@ -1312,8 +1312,8 @@ unique_ptr<Mode> BuildTableMode() {
   
   unique_ptr<Action> export_table =
       ClusterActionBuilder("export", &ExportTable)
-      .Description("Scan rows from a table")
-      .ExtraDescription("Scan rows from an existing table. See the help "
+      .Description("Export rows from a table")
+      .ExtraDescription("Export rows from an existing table. See the help "
                         "for the --predicates flag on how predicates can be specified.")
       .AddRequiredParameter({ kTableNameArg, "Name of the table to scan"})
       // .AddRequiredParameter({kExportLog,"Location of the export"})
@@ -1322,6 +1322,7 @@ unique_ptr<Mode> BuildTableMode() {
       .AddOptionalParameter("num_threads")
       .AddOptionalParameter("predicates")
       .AddOptionalParameter("tablets")
+      .AddOptionalParameter("target_folder")
       .Build();
 
   unique_ptr<Action> copy_table =

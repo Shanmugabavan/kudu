@@ -30,6 +30,11 @@
 #include <string>
 #include <sstream>
 #include <thread>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
@@ -60,6 +65,7 @@
 #include "kudu/util/slice.h"
 #include "kudu/util/stopwatch.h"
 #include "kudu/util/string_case.h"
+
 
 using kudu::client::KuduClient;
 using kudu::client::KuduColumnSchema;
@@ -120,6 +126,8 @@ DEFINE_string(write_type, "insert",
               "'upsert' or the empty string. If the empty string, data will not be copied "
               "(useful when create_table is 'true').");
 
+DEFINE_string(target_folder, ".",
+              "target folder for exporting the kudu table data to csv");
 
 
 static bool ValidateWriteType(const char* flag_name,
@@ -517,18 +525,21 @@ void TableScanner::ScanTask(const vector<KuduScanToken *>& tokens, Status* threa
 
 
 void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thread_status) {
-  std::string FilePath = "/home/shanmu/kuduDatabase/1/";
+  // std::string FilePath = "/home/shanmu/kuduDatabase/1/";
+  string FilePath;
+
   std::thread::id currentThreadId = std::this_thread::get_id();
   std::stringstream ss;
   ss << currentThreadId;
   std::string currentThreadIdStr = ss.str();
-  FilePath+=currentThreadIdStr+".csv";
+  FilePath=FLAGS_target_folder+"//"+currentThreadIdStr+".csv";
   bool coloum_Names_added=false;
   string row_batch;
   string* row_batch_ptr=&row_batch;
   row_batch.reserve(10000);
 
   std::string ret;
+  ret.reserve(5000);
   vector<std::string> row_array;
   char delimeter=',';
   string column_namess; 
@@ -703,6 +714,13 @@ Status TableScanner::StartCopy() {
 }
 
 Status TableScanner::StartExport(){
+  if (FLAGS_target_folder=="."){
+    //any implementation
+  }
+  else{
+    mkdir(FLAGS_target_folder.c_str(),0777);
+    FLAGS_target_folder=".//"+FLAGS_target_folder;
+  }
   return StartWork(WorkType::kExport);
 }
 
