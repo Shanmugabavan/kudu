@@ -1323,6 +1323,7 @@ unique_ptr<Mode> BuildTableMode() {
       .AddOptionalParameter("predicates")
       .AddOptionalParameter("tablets")
       .AddOptionalParameter("target_folder")
+      .AddOptionalParameter("write_buffer_char_length")
       .Build();
 
   unique_ptr<Action> copy_table =

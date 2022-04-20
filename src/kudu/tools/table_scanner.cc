@@ -127,7 +127,10 @@ DEFINE_string(write_type, "insert",
               "(useful when create_table is 'true').");
 
 DEFINE_string(target_folder, ".",
-              "target folder for exporting the kudu table data to csv");
+              "target folder for exporting the kudu table data to csv. default target folder is current directory");
+
+DEFINE_int64(write_buffer_char_length,10000,
+              "exporting buffer size. It will reserve the exporting string size from the memory. If the buffer get filled before export it will dynamically grow");
 
 
 static bool ValidateWriteType(const char* flag_name,
@@ -525,7 +528,6 @@ void TableScanner::ScanTask(const vector<KuduScanToken *>& tokens, Status* threa
 
 
 void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thread_status) {
-  // std::string FilePath = "/home/shanmu/kuduDatabase/1/";
   string FilePath;
 
   std::thread::id currentThreadId = std::this_thread::get_id();
@@ -536,10 +538,10 @@ void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thr
   bool coloum_Names_added=false;
   string row_batch;
   string* row_batch_ptr=&row_batch;
-  row_batch.reserve(10000);
+  row_batch.reserve(FLAGS_write_buffer_char_length);
 
   std::string ret;
-  ret.reserve(5000);
+  ret.reserve(FLAGS_write_buffer_char_length/2);
   vector<std::string> row_array;
   char delimeter=',';
   string column_namess; 
@@ -552,12 +554,12 @@ void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thr
       if (!coloum_Names_added){
         const KuduSchema* coloumn_names=batch.projection_schema();
         (*coloumn_names).ToCSVRowString(delimeter,column_namess);
-        (*row_batch_ptr).append(column_namess+"\n");
+        (*row_batch_ptr).append(column_namess.append("\n"));
         coloum_Names_added=true;
       }
       for (const auto& row : batch) {
         row.ToCSVRowString(ret,row_array,delimeter);
-        (*row_batch_ptr).append(ret+"\n");
+        (*row_batch_ptr).append(ret.append("\n"));
         ret.clear();
       }
       s<<*row_batch_ptr;

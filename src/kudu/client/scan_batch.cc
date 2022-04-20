@@ -400,7 +400,7 @@ string KuduScanBatch::RowPtr::ToString() const {
 }
 
 string* KuduScanBatch::RowPtr::ToCSVRowString(std::string& ret, std::vector<std::string>& row_array, char& delimeter) const {
-  // Client-users calling ToString() will likely expect it to not be redacted.
+  //returned ret="abc","cde","efg"
   ScopedDisableRedaction no_redaction;
   for (int i = 0; i < schema_->num_columns(); i++) {
     RowCell cell(this, i);

@@ -417,10 +417,12 @@ class ColumnSchema {
     }
   }
 
+  // Append a debug csv string for this cell.
+  // ex: "bar".
   template<class CellType>
   void DebugCSVCellAppend(const CellType& cell, std::string* ret) const {
     if (is_nullable_ && cell.is_null()) {
-      ret->append("NULL");
+      ret->append("");
     } else {
       type_info_->AppendDebugStringForValue(cell.ptr(), ret);
     }
