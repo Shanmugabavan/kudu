@@ -657,15 +657,6 @@ Status TableScanner::StartWork(WorkType type) {
   client::sp::shared_ptr<KuduTable> src_table;
   RETURN_NOT_OK(client_->OpenTable(table_name_, &src_table));
 
-  if (type == WorkType::kExport) {
-    bool project_all = FLAGS_columns == "*" ||
-                       (FLAGS_show_values && FLAGS_columns.empty());
-    if (!project_all) {
-      vector<string> projected_column_names = Split(FLAGS_columns, ",", strings::SkipEmpty());
-      RETURN_NOT_OK(builder.SetProjectedColumnNames(projected_column_names));
-    }
-  }
-
   // Create destination table if needed.
   if (type == WorkType::kCopy) {
     RETURN_NOT_OK(CreateDstTableIfNeeded(src_table, *dst_client_, *dst_table_name_));
@@ -697,6 +688,15 @@ Status TableScanner::StartWork(WorkType type) {
       if (!FLAGS_row_count_only && !FLAGS_columns.empty()) {
         projected_column_names = Split(FLAGS_columns, ",", strings::SkipEmpty());
       }
+      RETURN_NOT_OK(builder.SetProjectedColumnNames(projected_column_names));
+    }
+  }
+
+  if (type == WorkType::kExport) {
+    bool project_all = FLAGS_columns == "*" ||
+                       (FLAGS_show_values && FLAGS_columns.empty());
+    if (!project_all) {
+      vector<string> projected_column_names = Split(FLAGS_columns, ",", strings::SkipEmpty());
       RETURN_NOT_OK(builder.SetProjectedColumnNames(projected_column_names));
     }
   }
