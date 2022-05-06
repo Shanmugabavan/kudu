@@ -560,13 +560,35 @@ void TableScanner::ScanTask(const vector<KuduScanToken*>& tokens, Status* thread
   });
 }
 
+void TableScanner::CopyTask(const vector<KuduScanToken*>& tokens, Status* thread_status) {
+  client::sp::shared_ptr<KuduTable> dst_table;
+  CHECK_OK(dst_client_.get()->OpenTable(*dst_table_name_, &dst_table));
+  const KuduSchema& dst_table_schema = dst_table->schema();
+
+  // One session per thread.
+  client::sp::shared_ptr<KuduSession> session(dst_client_.get()->NewSession());
+  CHECK_OK(session->SetFlushMode(KuduSession::AUTO_FLUSH_BACKGROUND));
+  CHECK_OK(session->SetErrorBufferSpace(1024));
+  session->SetTimeoutMillis(FLAGS_timeout_ms);
+
+  *thread_status = ScanData(tokens, [&](const KuduScanBatch& batch) {
+    for (const auto& row : batch) {
+      CHECK_OK(AddRow(dst_table, dst_table_schema, row, session));
+    }
+    CheckPendingErrors(session);
+    // Flush here to make sure all write operations have been sent,
+    // and all strings reference to batch are still valid.
+    CHECK_OK(session->Flush());
+  });
+}
+
 void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thread_status) {
   string FilePath;
    // One session per thread.
   client::sp::shared_ptr<KuduSession> session(dst_client_.get()->NewSession());
   CHECK_OK(session->SetFlushMode(KuduSession::AUTO_FLUSH_BACKGROUND));
   CHECK_OK(session->SetErrorBufferSpace(1024));
-  session->SetTimeoutMillis(30000);
+  session->SetTimeoutMillis(FLAGS_timeout_ms);
 
   std::thread::id currentThreadId = std::this_thread::get_id();
   std::stringstream ss;
@@ -610,28 +632,6 @@ void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thr
     // and all strings reference to batch are still valid.
   CHECK_OK(session->Flush());
   s.close();
-}
-
-void TableScanner::CopyTask(const vector<KuduScanToken*>& tokens, Status* thread_status) {
-  client::sp::shared_ptr<KuduTable> dst_table;
-  CHECK_OK(dst_client_.get()->OpenTable(*dst_table_name_, &dst_table));
-  const KuduSchema& dst_table_schema = dst_table->schema();
-
-  // One session per thread.
-  client::sp::shared_ptr<KuduSession> session(dst_client_.get()->NewSession());
-  CHECK_OK(session->SetFlushMode(KuduSession::AUTO_FLUSH_BACKGROUND));
-  CHECK_OK(session->SetErrorBufferSpace(1024));
-  session->SetTimeoutMillis(FLAGS_timeout_ms);
-
-  *thread_status = ScanData(tokens, [&](const KuduScanBatch& batch) {
-    for (const auto& row : batch) {
-      CHECK_OK(AddRow(dst_table, dst_table_schema, row, session));
-    }
-    CheckPendingErrors(session);
-    // Flush here to make sure all write operations have been sent,
-    // and all strings reference to batch are still valid.
-    CHECK_OK(session->Flush());
-  });
 }
 
 void TableScanner::SetOutput(ostream* out) {
