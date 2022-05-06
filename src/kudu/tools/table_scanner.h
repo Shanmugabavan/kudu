@@ -68,6 +68,7 @@ class TableScanner {
 
   Status StartScan();
   Status StartCopy();
+  Status StartExport();
 
   uint64_t TotalScannedCount() const {
     return total_count_;
@@ -76,7 +77,8 @@ class TableScanner {
  private:
   enum class WorkType {
     kScan,
-    kCopy
+    kCopy,
+    kExport
   };
 
   static Status AddRow(
@@ -98,6 +100,7 @@ class TableScanner {
                 Status* thread_status);
   void CopyTask(const std::vector<client::KuduScanToken*>& tokens,
                 Status* thread_status);
+  void ExportTask(const std::vector<kudu::client::KuduScanToken*>& tokens, Status* thread_status);
 
   std::atomic<uint64_t> total_count_;
   boost::optional<client::KuduScanner::ReadMode> mode_;

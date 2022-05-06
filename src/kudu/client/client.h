@@ -1486,6 +1486,7 @@ class KUDU_EXPORT KuduTableStatistics {
   ///
   /// @return A string describing this statistics
   std::string ToString() const;
+  std::string ToCSVRowString() const;
 
  private:
   class KUDU_NO_EXPORT Data;
@@ -3044,6 +3045,7 @@ class KUDU_EXPORT KuduScanner {
   /// @note This method must not be used in log messages because it contains
   ///   sensitive predicate values. Use Scanner::Data::DebugString instead.
   std::string ToString() const;
+  std::string ToCSVRowString() const;
 
  private:
   class KUDU_NO_EXPORT Data;

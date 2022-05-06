@@ -1870,6 +1870,12 @@ string KuduScanner::ToString() const {
       data_->table_->name(),
       data_->configuration().spec().ToString(*data_->table_->schema().schema_)));
 }
+string KuduScanner::ToCSVRowString() const {
+  return KUDU_DISABLE_REDACTION(Substitute(
+      "$0: $1",
+      data_->table_->name(),
+      data_->configuration().spec().ToString(*data_->table_->schema().schema_)));
+}
 
 Status KuduScanner::Open() {
   CHECK(!data_->open_) << "Scanner already open";

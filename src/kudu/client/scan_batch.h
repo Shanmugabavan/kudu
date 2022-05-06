@@ -24,6 +24,7 @@
 #include <cstddef>
 #include <iterator>
 #include <string>
+#include <vector>
 
 #ifdef KUDU_HEADERS_NO_STUBS
 #include "kudu/gutil/macros.h"
@@ -343,6 +344,7 @@ class KUDU_EXPORT KuduScanBatch::RowPtr {
 
   /// @return String representation for this row.
   std::string ToString() const;
+  std::string* ToCSVRowString(std::string& ret, std::vector<std::string>& row_array, char& delimeter ) const;
 
  private:
   friend class KuduScanBatch;
