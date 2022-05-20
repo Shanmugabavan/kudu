@@ -543,21 +543,34 @@ void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thr
   ss << currentThreadId;
   std::string currentThreadIdStr = ss.str();
   FilePath=FLAGS_target_folder+"//"+currentThreadIdStr+".csv";
+  std::string LogFilePath=FLAGS_target_folder+"//"+std::string("log_")+currentThreadIdStr+".txt";  //testing
   bool coloum_Names_added=false;
   string row_batch;
   string* row_batch_ptr=&row_batch;
   row_batch.reserve(FLAGS_write_buffer_char_length);
 
   std::string ret;
-  ret.reserve(FLAGS_write_buffer_char_length/2);
+  int new_buffer=FLAGS_write_buffer_char_length/2;
+  ret.reserve(new_buffer);
   vector<std::string> row_array;
   char delimeter=',';
   string column_namess; 
 
   std::fstream s(FilePath, s.out);
+  std::fstream s2(LogFilePath,s2.out); //testing
+
+  double max_cb_elapsed_time=0;  //testing
+  int max_row_count=0; //testing
+  int min_row_count=0;  //testing
 
   *thread_status = ScanData(tokens, [&](const KuduScanBatch& batch) {
+    Stopwatch sw_test(Stopwatch::THIS_THREAD);  //test
+    sw_test.start();  //test
+    std::size_t max_buffer_size=0; //test
+    std::size_t min_buffer_size=FLAGS_write_buffer_char_length; //test
+
     if (FLAGS_show_values) {
+      int row_count=0;
 
       if (!coloum_Names_added){
         const KuduSchema* coloumn_names=batch.projection_schema();
@@ -565,14 +578,35 @@ void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thr
         (*row_batch_ptr).append(column_namess.append("\n"));
         coloum_Names_added=true;
       }
-      for (const auto& row : batch) {
+      for (const auto& row : batch) {  //test
         row.ToCSVRowString(ret,row_array,delimeter);
+        row_count+=1; //test
         (*row_batch_ptr).append(ret.append("\n"));
+
+        if (row_batch.length()==0){
+          min_buffer_size=row_batch.length();
+        }else{
+          if (row_batch.length()>max_buffer_size){
+            max_buffer_size=row_batch.length();
+          }
+          if(row_batch.length()<min_buffer_size){
+            min_buffer_size=row_batch.length();
+          }
+        }
         ret.clear();
       }
       s<<*row_batch_ptr;
       (*row_batch_ptr).clear();
       s.flush();
+
+      sw_test.stop();
+      double elapsed_time=sw_test.elapsed().wall_millis();
+      if (elapsed_time > max_cb_elapsed_time){
+        max_cb_elapsed_time=elapsed_time;
+        s2<<"[max_cb_elapsed_time: "<<max_cb_elapsed_time<<" ms] " <<"[min_buffer_size: " << min_buffer_size <<"] " << "[max_buffer_size: " << max_buffer_size <<"] \n";
+        s2.flush();
+
+      }
     }
   });
   // CheckPendingErrors(session);
@@ -580,6 +614,7 @@ void TableScanner::ExportTask(const vector<KuduScanToken *>& tokens, Status* thr
   //   // and all strings reference to batch are still valid.
   // CHECK_OK(session->Flush());
   s.close();
+  s2.close();
 }
 
 void TableScanner::CopyTask(const vector<KuduScanToken*>& tokens, Status* thread_status) {
